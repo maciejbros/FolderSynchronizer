@@ -1,4 +1,6 @@
-﻿using FolderSynchronizer.Utilities;
+﻿using FolderSynchronizer.Services;
+using FolderSynchronizer.Services.Interfaces;
+using FolderSynchronizer.Utilities;
 
 namespace FolderSynchronizer;
 
@@ -10,11 +12,13 @@ internal class Program
         {
             var options = ArgumentParser.Parse(args);
 
-            Console.WriteLine("Folder Synchronizer");
-            Console.WriteLine($"Source: {options.SourcePath}");
-            Console.WriteLine($"Replica: {options.ReplicaPath}");
-            Console.WriteLine($"Interval: {options.IntervalSeconds} seconds");
-            Console.WriteLine($"Log file: {options.LogFilePath}");
+            IFolderSynchronizer synchronizer = new Services.FolderSynchronizer();
+
+            synchronizer.Synchronize(
+                options.SourcePath,
+                options.ReplicaPath);
+
+            Console.WriteLine("Synchronization completed.");
         }
         catch (Exception ex)
         {
