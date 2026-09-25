@@ -4,6 +4,13 @@ namespace FolderSynchronizer.Services;
 
 public class FolderSynchronizer : IFolderSynchronizer
 {
+    private readonly ILogger _logger;
+
+    public FolderSynchronizer(ILogger logger)
+    {
+        _logger = logger;
+    }
+
     public void Synchronize(string sourcePath, string replicaPath)
     {
         EnsureReplicaDirectoryExists(replicaPath);
@@ -11,15 +18,18 @@ public class FolderSynchronizer : IFolderSynchronizer
         SynchronizeDirectories(sourcePath, replicaPath);
     }
 
-    private static void EnsureReplicaDirectoryExists(string replicaPath)
+    private void EnsureReplicaDirectoryExists(string replicaPath)
     {
         if (!Directory.Exists(replicaPath))
         {
             Directory.CreateDirectory(replicaPath);
+
+            _logger.Log(
+                $"Created directory: {replicaPath}");
         }
     }
 
-    private static void SynchronizeDirectories(
+    private void SynchronizeDirectories(
         string sourcePath,
         string replicaPath)
     {
@@ -29,7 +39,7 @@ public class FolderSynchronizer : IFolderSynchronizer
         RemoveExtraDirectories(sourcePath, replicaPath);
     }
 
-    private static void SynchronizeFiles(
+    private void SynchronizeFiles(
         string sourcePath,
         string replicaPath)
     {
@@ -38,15 +48,27 @@ public class FolderSynchronizer : IFolderSynchronizer
             string fileName = Path.GetFileName(sourceFile);
             string replicaFile = Path.Combine(replicaPath, fileName);
 
-            if (!File.Exists(replicaFile) ||
-                !FilesAreIdentical(sourceFile, replicaFile))
+            if (!File.Exists(replicaFile))
+            {
+                File.Copy(sourceFile, replicaFile);
+
+                _logger.Log(
+                    $"Copied file: {sourceFile} -> {replicaFile}");
+
+                continue;
+            }
+
+            if (!FilesAreIdentical(sourceFile, replicaFile))
             {
                 File.Copy(sourceFile, replicaFile, overwrite: true);
+
+                _logger.Log(
+                    $"Updated file: {replicaFile}");
             }
         }
     }
 
-    private static void SynchronizeSubdirectories(
+    private void SynchronizeSubdirectories(
         string sourcePath,
         string replicaPath)
     {
@@ -59,13 +81,16 @@ public class FolderSynchronizer : IFolderSynchronizer
             if (!Directory.Exists(replicaDirectory))
             {
                 Directory.CreateDirectory(replicaDirectory);
+
+                _logger.Log(
+                    $"Created directory: {replicaDirectory}");
             }
 
             SynchronizeDirectories(sourceDirectory, replicaDirectory);
         }
     }
 
-    private static void RemoveExtraFiles(
+    private void RemoveExtraFiles(
         string sourcePath,
         string replicaPath)
     {
@@ -77,11 +102,14 @@ public class FolderSynchronizer : IFolderSynchronizer
             if (!File.Exists(sourceFile))
             {
                 File.Delete(replicaFile);
+
+                _logger.Log(
+                    $"Removed file: {replicaFile}");
             }
         }
     }
 
-    private static void RemoveExtraDirectories(
+    private void RemoveExtraDirectories(
         string sourcePath,
         string replicaPath)
     {
@@ -94,6 +122,9 @@ public class FolderSynchronizer : IFolderSynchronizer
             if (!Directory.Exists(sourceDirectory))
             {
                 Directory.Delete(replicaDirectory, recursive: true);
+
+                _logger.Log(
+                    $"Removed directory: {replicaDirectory}");
             }
         }
     }
