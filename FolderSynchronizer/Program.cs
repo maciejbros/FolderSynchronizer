@@ -12,13 +12,14 @@ internal class Program
         {
             var options = ArgumentParser.Parse(args);
 
-            IFolderSynchronizer synchronizer = new Services.FolderSynchronizer();
+            ILogger logger = new FileLogger(options.LogFilePath);
+
+            IFolderSynchronizer synchronizer =
+                new Services.FolderSynchronizer(logger);
 
             synchronizer.Synchronize(
                 options.SourcePath,
                 options.ReplicaPath);
-
-            Console.WriteLine("Synchronization completed.");
         }
         catch (Exception ex)
         {
