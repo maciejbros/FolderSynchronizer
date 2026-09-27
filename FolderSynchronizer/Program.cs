@@ -6,7 +6,7 @@ namespace FolderSynchronizer;
 
 internal class Program
 {
-    private static void Main(string[] args)
+    private static async Task Main(string[] args)
     {
         try
         {
@@ -17,9 +17,35 @@ internal class Program
             IFolderSynchronizer synchronizer =
                 new Services.FolderSynchronizer(logger);
 
+            using CancellationTokenSource cancellationTokenSource = new();
+
+            Console.CancelKeyPress += (_, eventArgs) =>
+            {
+                eventArgs.Cancel = true;
+                cancellationTokenSource.Cancel();
+            };
+
+            logger.Log($"Starting synchronization every {options.IntervalSeconds} seconds.");
+
             synchronizer.Synchronize(
                 options.SourcePath,
                 options.ReplicaPath);
+
+            using PeriodicTimer timer = new(TimeSpan.FromSeconds(options.IntervalSeconds));
+
+            try
+            {
+                while (await timer.WaitForNextTickAsync(cancellationTokenSource.Token))
+                {
+                    synchronizer.Synchronize(
+                        options.SourcePath,
+                        options.ReplicaPath);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                logger.Log($"Synchronization stoped.");
+            }
         }
         catch (Exception ex)
         {
